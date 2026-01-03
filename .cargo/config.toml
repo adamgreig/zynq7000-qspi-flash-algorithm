@@ -17,7 +17,7 @@ rustflags = [
   "-C",
   "force-frame-pointers=no",
 ]
-runner = "target-gen test template.yaml target/definition.yaml"
+runner = "target-gen test --probe 1234:4321 template.yaml target/definition.yaml"
 
 [build]
 target = "armv7a-none-eabi"
