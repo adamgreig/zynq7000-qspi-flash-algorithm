@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use flash_algorithm::*;
 use aarch32_cpu::asm::dmb;
+use flash_algorithm::*;
 
 struct Algorithm;
 
@@ -72,7 +72,7 @@ fn io_mode() {
         // Configure controller for manual start and manual CS flash mode at 25MHz,
         // with PCS deasserted.
         QSPI_CONFIG_REG.write_volatile(
-            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (0b111 << 3) | 1
+            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (0b111 << 3) | 1,
         );
         // Set up flash controller for IO mode operations
         QSPI_LQSPI_CONFIG.write_volatile(0x0000_016B);
@@ -112,16 +112,12 @@ fn start_transfer() {
 
 /// Get RX FIFO not-empty flag
 fn rxne() -> bool {
-    unsafe {
-        ((QSPI_STATUS_REG.read_volatile() >> 4) & 1) != 0
-    }
+    unsafe { ((QSPI_STATUS_REG.read_volatile() >> 4) & 1) != 0 }
 }
 
 /// Get TX FIFO full flag
 fn txf() -> bool {
-    unsafe {
-        ((QSPI_STATUS_REG.read_volatile() >> 3) & 1) != 0
-    }
+    unsafe { ((QSPI_STATUS_REG.read_volatile() >> 3) & 1) != 0 }
 }
 
 /// Read a single 32-bit entry from the RX FIFO or timeout, deassert PCS, and swap to linear mode.
