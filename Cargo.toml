@@ -4,12 +4,8 @@ readme = "README.md"
 name = "zynq7000-qspi-flash-algorithm"
 version = "0.1.0"
 
-[patch.crates-io]
-flash-algorithm = { git = "https://github.com/probe-rs/flash-algorithm" }
-
 [dependencies]
-flash-algorithm = { version = "0.6.0", features = ["read-flash", "blank-check", "verify"] }
-aarch32-cpu = "0.1.0"
+flash-algorithm = { version = "0.7.0", features = ["read-flash", "blank-check", "verify"] }
 
 [[bin]]
 name = "zynq7000-qspi-flash-algorithm"

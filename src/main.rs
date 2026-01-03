@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-use aarch32_cpu::asm::dmb;
 use flash_algorithm::*;
 
 struct Algorithm;
@@ -43,10 +42,18 @@ const QSPI_EN_REG: *mut u32 = 0xE000_D014 as *mut u32;
 const QSPI_TXD0: *mut u32 = 0xE000_D01C as *mut u32;
 const QSPI_TXD1: *mut u32 = 0xE000_D080 as *mut u32;
 const QSPI_TXD2: *mut u32 = 0xE000_D084 as *mut u32;
-const QSPI_TXD3: *mut u32 = 0xE000_D088 as *mut u32;
 const QSPI_RXD: *mut u32 = 0xE000_D020 as *mut u32;
 const QSPI_LPBK_DLY_ADJ: *mut u32 = 0xE000_D038 as *mut u32;
 const QSPI_LQSPI_CONFIG: *mut u32 = 0xE000_D0A0 as *mut u32;
+
+fn dmb() {
+    use core::sync::atomic::{compiler_fence, Ordering};
+    compiler_fence(Ordering::SeqCst);
+    unsafe {
+        core::arch::asm!("dmb", options(nostack, preserves_flags));
+    }
+    compiler_fence(Ordering::SeqCst);
+}
 
 /// Set QSPI controller to linear mode; flash is read-only and mapped from 0xFC00_0000.
 fn linear_mode() {

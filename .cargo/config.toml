@@ -17,6 +17,7 @@ rustflags = [
   "-C",
   "force-frame-pointers=no",
 ]
+# Dummy probe ID to prevent actually running the test every time we rebuild.
 runner = "target-gen test --probe 1234:4321 template.yaml target/definition.yaml"
 
 [build]
