@@ -1,8 +1,11 @@
 [package]
-edition = "2024"
-readme = "README.md"
 name = "zynq7000-qspi-flash-algorithm"
 version = "0.1.0"
+edition = "2024"
+readme = "README.md"
+description = "Probe-rs flash algorithm for Zynq-7000 SoCs with QSPI memory"
+repository = "https://github.com/adamgreig/zynq7000-qspi-flash-algorithm"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 flash-algorithm = { version = "0.7.0", features = ["read-flash", "blank-check", "verify"] }
