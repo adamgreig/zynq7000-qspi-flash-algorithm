@@ -54,7 +54,7 @@ fn linear_mode() {
         // Ensure disabled before reconfiguring.
         QSPI_EN_REG.write_volatile(0);
         // Configure controller for automatic flash mode at 25MHz.
-        QSPI_CONFIG_REG.write_volatile((1 << 31) | (0b11 << 6) | (0b111 << 3) | 1);
+        QSPI_CONFIG_REG.write_volatile((1 << 31) | (0b11 << 6) | (0b010 << 3) | 1);
         // Configure linear mode for Quad Out Read Fast (0x6B).
         // We avoid Quad I/O Read Fast because the number of dummy bytes required differs
         // between Winbond and Micron devices (2 vs 4).
@@ -72,7 +72,7 @@ fn io_mode() {
         // Configure controller for manual start and manual CS flash mode at 25MHz,
         // with PCS deasserted.
         QSPI_CONFIG_REG.write_volatile(
-            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (0b111 << 3) | 1,
+            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (0b010 << 3) | 1,
         );
         // Set up flash controller for IO mode operations
         QSPI_LQSPI_CONFIG.write_volatile(0x0000_016B);
