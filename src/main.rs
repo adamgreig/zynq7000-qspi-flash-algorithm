@@ -7,12 +7,13 @@ use aarch32_cpu::asm::dmb;
 struct Algorithm;
 
 const FLASH_ADDR: u32 = 0xFC00_0000;
+const FLASH_SIZE: u32 = 16 * 1024 * 1024;
 
 algorithm!(Algorithm, {
     device_name: "X7Z",
     device_type: DeviceType::ExtSpi,
     flash_address: FLASH_ADDR,
-    flash_size: 16 * 1024 * 1024,
+    flash_size: FLASH_SIZE,
     page_size: 256,
     empty_value: 0xFF,
     program_time_out: 1000,
@@ -245,7 +246,6 @@ impl FlashAlgorithm for Algorithm {
         wait_not_busy()?;
 
         linear_mode();
-
         Ok(())
     }
 
@@ -303,6 +303,42 @@ impl FlashAlgorithm for Algorithm {
         wait_not_busy()?;
 
         linear_mode();
+        Ok(())
+    }
+
+    fn read_flash(&mut self, addr: u32, data: &mut [u8]) -> Result<(), ErrorCode> {
+        if addr < FLASH_ADDR || data.len() > FLASH_SIZE as usize {
+            return Err(ErrorCode::new(1).unwrap());
+        }
+        let flash = unsafe { core::slice::from_raw_parts(addr as *const u8, data.len()) };
+        data.copy_from_slice(&flash[..]);
+        Ok(())
+    }
+
+    fn verify(&mut self, addr: u32, size: u32, data: Option<&[u8]>) -> Result<(), u32> {
+        let Some(data) = data else {
+            return Err(0);
+        };
+        if data.len() != size as usize {
+            return Err(addr.wrapping_add(data.len() as u32));
+        }
+        if addr < FLASH_ADDR || size > FLASH_SIZE {
+            return Err(0xFFFFFFFF);
+        }
+        for (idx, byte) in data.iter().enumerate() {
+            if unsafe { (addr as *const u8).offset(idx as isize).read() } != *byte {
+                return Err(addr.wrapping_add(idx as u32));
+            }
+        }
+        Ok(())
+    }
+
+    fn blank_check(&mut self, addr: u32, size: u32, pattern: u8) -> Result<(), ErrorCode> {
+        for idx in 0..size {
+            if unsafe { (addr as *const u8).offset(idx as isize).read() } != pattern {
+                return Err(ErrorCode::new(1).unwrap());
+            }
+        }
         Ok(())
     }
 }

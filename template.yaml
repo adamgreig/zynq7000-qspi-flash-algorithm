@@ -58,7 +58,7 @@ variants:
     - zynq7000-qspi-flash-algorithm
 flash_algorithms:
   - name: zynq7000-qspi-flash-algorithm
-    description: FLash algorithm for generic QSPI x1 external flash setup
+    description: Flash algorithm for generic QSPI x1 external flash setup
     cores:
       - core0
     default: true
