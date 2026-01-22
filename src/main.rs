@@ -158,7 +158,7 @@ fn send_command(cmd: u8) -> Result<(), ErrorCode> {
 fn send_command_and_address(cmd: u8, addr: u32) -> Result<(), ErrorCode> {
     set_pcs(0);
     set_enable(true);
-    unsafe { QSPI_TXD0.write_volatile((addr << 8) | (cmd as u32)) };
+    unsafe { QSPI_TXD0.write_volatile(addr.swap_bytes() | (cmd as u32)) };
     start_transfer();
     read_rx()?;
     set_pcs(1);
@@ -283,7 +283,7 @@ impl FlashAlgorithm for Algorithm {
         set_pcs(0);
         set_enable(true);
         let mut buf_idx = 0;
-        unsafe { QSPI_TXD0.write_volatile((addr << 8) | 0x02) };
+        unsafe { QSPI_TXD0.write_volatile((addr - FLASH_ADDR).swap_bytes() | 0x02) };
         while buf_idx < buf.len() && !txf() {
             unsafe { QSPI_TXD0.write_volatile(buf[buf_idx]) };
             buf_idx += 1;
