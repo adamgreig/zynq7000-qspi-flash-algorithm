@@ -10,6 +10,11 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 flash-algorithm = { version = "0.7.0", features = ["read-flash", "blank-check", "verify"] }
 
+[features]
+fast_33m = ["fast"]
+fast_50m = ["fast"]
+fast = []
+
 [[bin]]
 name = "zynq7000-qspi-flash-algorithm"
 test = false

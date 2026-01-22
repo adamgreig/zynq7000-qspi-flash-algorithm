@@ -34,6 +34,7 @@ const MIO_PIN_03: *mut u32 = 0xF800070C as *mut u32;
 const MIO_PIN_04: *mut u32 = 0xF8000710 as *mut u32;
 const MIO_PIN_05: *mut u32 = 0xF8000714 as *mut u32;
 const MIO_PIN_06: *mut u32 = 0xF8000718 as *mut u32;
+#[cfg(feature="fast")]
 const MIO_PIN_08: *mut u32 = 0xF8000720 as *mut u32;
 const QSPI_CONFIG_REG: *mut u32 = 0xE000_D000 as *mut u32;
 const QSPI_STATUS_REG: *mut u32 = 0xE000_D004 as *mut u32;
@@ -55,13 +56,18 @@ fn dmb() {
     compiler_fence(Ordering::SeqCst);
 }
 
+#[cfg(feature="fast")]
+const BD_DIV: u32 = 0b000;
+#[cfg(not(feature="fast"))]
+const BD_DIV: u32 = 0b010;
+
 /// Set QSPI controller to linear mode; flash is read-only and mapped from 0xFC00_0000.
 fn linear_mode() {
     unsafe {
         // Ensure disabled before reconfiguring.
         QSPI_EN_REG.write_volatile(0);
-        // Configure controller for automatic flash mode at 25MHz.
-        QSPI_CONFIG_REG.write_volatile((1 << 31) | (0b11 << 6) | (0b010 << 3) | 1);
+        // Configure controller for automatic flash mode.
+        QSPI_CONFIG_REG.write_volatile((1 << 31) | (0b11 << 6) | (BD_DIV << 3) | 1);
         // Configure linear mode for Quad Out Read Fast (0x6B).
         // We avoid Quad I/O Read Fast because the number of dummy bytes required differs
         // between Winbond and Micron devices (2 vs 4).
@@ -76,10 +82,10 @@ fn io_mode() {
     unsafe {
         // Ensure disabled before reconfiguring.
         QSPI_EN_REG.write_volatile(0);
-        // Configure controller for manual start and manual CS flash mode at 25MHz,
+        // Configure controller for manual start and manual CS flash mode.
         // with PCS deasserted.
         QSPI_CONFIG_REG.write_volatile(
-            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (0b010 << 3) | 1,
+            (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (BD_DIV << 3) | 1,
         );
         // Set up flash controller for IO mode operations
         QSPI_LQSPI_CONFIG.write_volatile(0x0000_016B);
@@ -208,8 +214,14 @@ impl FlashAlgorithm for Algorithm {
             SLCR_QSPI_RST_CTRL.write_volatile(0);
             dmb();
 
-            // Read IO_PLL to guess its frequency, assuming standard 33.333MHz external clock.
+            // Read IO_PLL to guess its frequency.
+            // In normal speed mode, 33M or 50M xtal gives us acceptable frequencies,
+            // but for fast_50m mode we need to change FDIV to actually get 200M otherwise
+            // the QSPI interface clock will be 166MHz instead of 100MHz.
             let iopll_fdiv = SLCR_IO_PLL_CTRL.read_volatile() >> 12 & 0b111_1111;
+            #[cfg(feature="fast_50m")]
+            let iopll_freq = (iopll_fdiv * 100) / 2;
+            #[cfg(not(feature="fast_50m"))]
             let iopll_freq = (iopll_fdiv * 100) / 3;
 
             // Enable QSPI reference clock at 200MHz from detected IO_PLL frequency.
@@ -223,14 +235,18 @@ impl FlashAlgorithm for Algorithm {
             MIO_PIN_04.write_volatile((0b011 << 9) | (1 << 1));
             MIO_PIN_05.write_volatile((0b011 << 9) | (1 << 1));
             MIO_PIN_06.write_volatile((0b011 << 9) | (1 << 1));
+            #[cfg(feature="fast")]
             MIO_PIN_08.write_volatile((0b011 << 9) | (1 << 1));
 
             // Re-lock SLCR.
             SLCR_LOCK.write_volatile(0x767b);
             dmb();
 
-            // Enable loopback clock (TODO: only after bumping clock to 100MHz)
-            //QSPI_LPBK_DLY_ADJ.write_volatile(1<<5);
+            // Enable loopback clock in fast mode, otherwise disable.
+            #[cfg(feature="fast")]
+            QSPI_LPBK_DLY_ADJ.write_volatile(1<<5);
+            #[cfg(not(feature="fast"))]
+            QSPI_LPBK_DLY_ADJ.write_volatile(0);
 
             // Ensure all interrupts are disabled.
             QSPI_INT_DIS_REG.write_volatile(0b111_1101);
