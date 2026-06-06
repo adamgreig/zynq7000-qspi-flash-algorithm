@@ -61,6 +61,11 @@ const BD_DIV: u32 = 0b000;
 #[cfg(not(feature="fast"))]
 const BD_DIV: u32 = 0b010;
 
+#[cfg(feature="fast")]
+const READ_INST: u32 = 0x6B;
+#[cfg(not(feature="fast"))]
+const READ_INST: u32 = 0x03;
+
 /// Set QSPI controller to linear mode; flash is read-only and mapped from 0xFC00_0000.
 fn linear_mode() {
     unsafe {
@@ -68,10 +73,11 @@ fn linear_mode() {
         QSPI_EN_REG.write_volatile(0);
         // Configure controller for automatic flash mode.
         QSPI_CONFIG_REG.write_volatile((1 << 31) | (0b11 << 6) | (BD_DIV << 3) | 1);
-        // Configure linear mode for Quad Out Read Fast (0x6B).
-        // We avoid Quad I/O Read Fast because the number of dummy bytes required differs
-        // between Winbond and Micron devices (2 vs 4).
-        QSPI_LQSPI_CONFIG.write_volatile(0x8000_016B);
+        // Configure linear mode and read command.
+        // We use standard read for non-fast mode for maximum compatibility.
+        // We use quad out fast read for fast mode, avoiding quad i/o fast read because
+        // the number of dummy bytes required is vendor-dependent.
+        QSPI_LQSPI_CONFIG.write_volatile(0x8000_0100 | READ_INST);
         // Leave enabled while in linear mode.
         QSPI_EN_REG.write_volatile(1);
     }
@@ -88,7 +94,7 @@ fn io_mode() {
             (1 << 31) | (1 << 15) | (1 << 14) | (1 << 10) | (0b11 << 6) | (BD_DIV << 3) | 1,
         );
         // Set up flash controller for IO mode operations
-        QSPI_LQSPI_CONFIG.write_volatile(0x0000_016B);
+        QSPI_LQSPI_CONFIG.write_volatile(0x0000_0100 | READ_INST);
         // Leave disabled, operations will enable as required.
     }
 }
